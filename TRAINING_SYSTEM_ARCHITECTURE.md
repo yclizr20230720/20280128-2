@@ -318,7 +318,7 @@ graph TB
     
     subgraph "Utilities"
         L[auth.py<br/>JWT Utils]
-        M[Decorators<br/>@token_required]
+        M[Decorators]
     end
     
     subgraph "Data Storage"
@@ -1115,3 +1115,4 @@ graph TB
 **Happy Learning! 🚀**
 
 For questions or support, contact the development team.
+
