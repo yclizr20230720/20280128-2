@@ -2385,4 +2385,5 @@ The VSMC Litho Platform demonstrates these concepts in a real production applica
 
 *Training Material Version: 1.0*  
 *Last Updated: January 2026*  
-*For: VSMC Litho Platform Engineering Team*
+*For: VSMC DAP Team*
+
