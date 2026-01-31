@@ -356,7 +356,7 @@ graph TB
 
 ```mermaid
 graph TB
-    A[Flask App<br/>localhost:5000] --> B[/api/v1]
+    A[Flask App<br/>localhost:5000] --> B[api_v1]
     
     B --> C[/auth]
     B --> D[/edforest]
@@ -1115,5 +1115,6 @@ graph TB
 **Happy Learning! 🚀**
 
 For questions or support, contact the development team.
+
 
 
