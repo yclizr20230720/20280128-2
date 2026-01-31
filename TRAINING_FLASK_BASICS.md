@@ -1683,4 +1683,5 @@ By mastering these basics, you're ready to build production-ready Flask APIs. Co
 
 *Training Material Version: 1.0*  
 *Last Updated: January 2026*  
-*For: VSMC Litho Platform Engineering Team*
+*For: VSMC DAP Team*
+
