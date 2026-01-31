@@ -358,10 +358,10 @@ graph TB
 graph TB
     A[Flask App<br/>localhost:5000] --> B[api_v1]
     
-    B --> C[/auth]
-    B --> D[/edforest]
-    B --> E[/history]
-    B --> F[/health]
+    B --> C[./auth]
+    B --> D[./edforest]
+    B --> E[./history]
+    B --> F[./health]
     
     C --> G[POST /register<br/>Create User]
     C --> H[POST /login<br/>Get Token]
@@ -1115,6 +1115,7 @@ graph TB
 **Happy Learning! 🚀**
 
 For questions or support, contact the development team.
+
 
 
 
