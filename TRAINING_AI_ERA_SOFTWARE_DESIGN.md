@@ -3900,5 +3900,6 @@ The VSMC Litho Platform demonstrates these principles in action. Study the codeb
 
 *Training Material Version: 1.0*  
 *Last Updated: January 2026*  
-*For: VSMC Litho Platform Engineering Team*  
+*For: VSMC DAPTeam*  
 *Focus: Design thinking for the AI era*
+
