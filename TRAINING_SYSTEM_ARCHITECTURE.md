@@ -543,7 +543,7 @@ graph TB
     
     subgraph "Protected Request Flow"
         O[User makes request] --> P[Include token<br/>Authorization: Bearer]
-        P --> Q[@token_required<br/>decorator]
+        P --> Q[token_required<br/>decorator]
         Q --> R[Decode JWT]
         R --> S[Verify signature]
         S --> T[Check expiration]
@@ -1115,6 +1115,7 @@ graph TB
 **Happy Learning! 🚀**
 
 For questions or support, contact the development team.
+
 
 
 
