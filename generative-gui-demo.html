@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generative GUI — Real Design Practice</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;1,300&family=Lora:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a08;
+    --surface: #131310;
+    --border: #2a2a24;
+    --accent: #c8f060;
+    --accent2: #f06060;
+    --accent3: #60a0f0;
+    --text: #e8e8e0;
+    --muted: #7a7a6e;
+    --card: #1a1a16;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* grain overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 999;
+    opacity: 0.4;
+  }
+
+  header {
+    padding: 40px 60px 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 32px;
+  }
+
+  .logo-mark {
+    width: 40px;
+    height: 40px;
+    background: var(--accent);
+    border-radius: 4px;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    margin-top: 4px;
+  }
+  .logo-mark svg { width: 22px; height: 22px; }
+
+  .header-text h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: #fff;
+  }
+  .header-text p {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .header-badge {
+    margin-left: auto;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 4px 10px;
+    border-radius: 2px;
+    align-self: center;
+    animation: pulse 3s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .main {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    min-height: calc(100vh - 113px);
+  }
+
+  /* LEFT PANEL */
+  .panel-left {
+    border-right: 1px solid var(--border);
+    padding: 32px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .section-label {
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  .prompt-area {
+    position: relative;
+  }
+
+  textarea#prompt {
+    width: 100%;
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    padding: 14px 16px;
+    border-radius: 6px;
+    resize: none;
+    height: 110px;
+    line-height: 1.6;
+    transition: border-color 0.2s;
+    outline: none;
+  }
+  textarea#prompt:focus { border-color: var(--accent); }
+  textarea#prompt::placeholder { color: var(--muted); }
+
+  .generate-btn {
+    width: 100%;
+    margin-top: 10px;
+    background: var(--accent);
+    color: #0a0a08;
+    border: none;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    padding: 13px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: transform 0.15s, background 0.2s;
+  }
+  .generate-btn:hover { background: #d4f570; transform: translateY(-1px); }
+  .generate-btn:active { transform: translateY(0); }
+  .generate-btn.loading { background: #7a9038; cursor: wait; }
+
+  .presets h3 { font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+  .preset-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .preset-chip {
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    padding: 8px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 0.15s, color 0.15s;
+    line-height: 1.4;
+  }
+  .preset-chip:hover { border-color: var(--accent); color: var(--accent); }
+  .preset-chip .chip-icon { font-size: 14px; display: block; margin-bottom: 3px; }
+
+  .history-section h3 { font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+  .history-list { display: flex; flex-direction: column; gap: 4px; }
+  .history-item {
+    font-size: 11px;
+    color: var(--muted);
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: background 0.15s, color 0.15s;
+    border: 1px solid transparent;
+  }
+  .history-item:hover { background: var(--card); color: var(--text); border-color: var(--border); }
+  .history-item.active { border-color: var(--accent); color: var(--accent); }
+
+  .info-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 16px;
+    margin-top: auto;
+  }
+  .info-box .info-title { font-size: 11px; color: var(--accent); margin-bottom: 6px; font-family: 'Syne', sans-serif; font-weight: 600; }
+  .info-box p { font-size: 11px; color: var(--muted); line-height: 1.6; }
+
+  /* RIGHT PANEL */
+  .panel-right {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .output-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 32px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tab-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 4px;
+    transition: color 0.15s, background 0.15s;
+  }
+  .tab-btn.active { color: var(--accent); background: rgba(200,240,96,0.08); }
+  .tab-btn:hover:not(.active) { color: var(--text); }
+
+  .toolbar-right {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+  }
+
+  .icon-btn {
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    width: 30px;
+    height: 30px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    font-size: 14px;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .output-stage {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background:
+      radial-gradient(circle at 20% 30%, rgba(200,240,96,0.03) 0%, transparent 50%),
+      radial-gradient(circle at 80% 70%, rgba(96,160,240,0.03) 0%, transparent 50%),
+      var(--bg);
+  }
+
+  /* dot grid bg */
+  .output-stage::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(var(--border) 1px, transparent 1px);
+    background-size: 28px 28px;
+    opacity: 0.5;
+  }
+
+  .stage-content {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+  }
+
+  .empty-state {
+    text-align: center;
+    max-width: 360px;
+  }
+  .empty-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.3;
+  }
+  .empty-state h2 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .empty-state p { font-size: 12px; color: var(--muted); opacity: 0.6; line-height: 1.7; }
+
+  .generated-ui {
+    width: 100%;
+    max-width: 700px;
+    animation: fadeIn 0.4s ease;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .code-view {
+    display: none;
+    width: 100%;
+    height: 100%;
+    padding: 32px;
+  }
+  .code-view.visible { display: block; }
+  .code-view pre {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    font-size: 12px;
+    line-height: 1.7;
+    color: #aaf;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+  .code-view pre .kw { color: var(--accent2); }
+  .code-view pre .str { color: var(--accent); }
+  .code-view pre .comment { color: var(--muted); font-style: italic; }
+
+  /* ---- GENERATED COMPONENTS ---- */
+
+  /* Dashboard Card */
+  .gen-dashboard {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .dash-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .dash-card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+  }
+  .dash-card:nth-child(2)::after { background: var(--accent3); }
+  .dash-card:nth-child(3)::after { background: var(--accent2); }
+  .dash-label { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .dash-value { font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800; color: #fff; }
+  .dash-delta { font-size: 11px; margin-top: 6px; color: #60f060; }
+  .dash-chart { height: 40px; margin-top: 12px; display: flex; align-items: flex-end; gap: 3px; }
+  .dash-bar { flex: 1; background: rgba(255,255,255,0.08); border-radius: 2px; transition: background 0.2s; }
+  .dash-bar:hover { background: rgba(200,240,96,0.3); }
+
+  /* Login Form */
+  .gen-login {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 40px;
+    width: 360px;
+  }
+  .gen-login .login-head { margin-bottom: 28px; }
+  .gen-login .login-head h2 { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 22px; color: #fff; }
+  .gen-login .login-head p { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .form-group input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    padding: 11px 14px;
+    border-radius: 6px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-group input:focus { border-color: var(--accent); }
+  .form-submit {
+    width: 100%;
+    margin-top: 20px;
+    background: var(--accent);
+    color: #0a0a08;
+    border: none;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 13px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .form-submit:hover { background: #d4f570; }
+  .form-divider { text-align: center; font-size: 11px; color: var(--muted); margin: 16px 0; }
+  .social-row { display: flex; gap: 8px; }
+  .social-btn {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    padding: 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .social-btn:hover { border-color: var(--accent); }
+
+  /* Pricing Table */
+  .gen-pricing {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    width: 100%;
+  }
+  .price-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    position: relative;
+  }
+  .price-card.featured {
+    border-color: var(--accent);
+    background: linear-gradient(135deg, rgba(200,240,96,0.06), var(--card));
+  }
+  .price-badge {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent);
+    color: #0a0a08;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+  .price-plan { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .price-amount { font-family: 'Syne', sans-serif; font-size: 36px; font-weight: 800; color: #fff; }
+  .price-amount span { font-size: 16px; font-weight: 400; color: var(--muted); }
+  .price-desc { font-size: 11px; color: var(--muted); margin: 8px 0 16px; }
+  .price-features { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .price-features li { font-size: 11px; color: var(--text); display: flex; align-items: center; gap: 8px; }
+  .price-features li::before { content: '✓'; color: var(--accent); font-weight: 700; }
+  .price-cta {
+    width: 100%;
+    margin-top: 20px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    padding: 11px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .price-cta:hover { border-color: var(--accent); color: var(--accent); }
+  .price-card.featured .price-cta { background: var(--accent); color: #0a0a08; border-color: var(--accent); }
+
+  /* Profile / User Card */
+  .gen-profile {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    width: 380px;
+    overflow: hidden;
+  }
+  .profile-cover { height: 100px; background: linear-gradient(135deg, #1a3a0a, #0a2a3a); position: relative; }
+  .profile-cover::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(200,240,96,0.15), rgba(96,160,240,0.1));
+  }
+  .profile-avatar {
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent3));
+    position: absolute;
+    bottom: -32px;
+    left: 24px;
+    border: 3px solid var(--card);
+    display: grid;
+    place-items: center;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    color: #0a0a08;
+  }
+  .profile-body { padding: 44px 24px 24px; }
+  .profile-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 18px; color: #fff; }
+  .profile-role { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .profile-bio { font-size: 12px; color: var(--text); line-height: 1.6; margin: 14px 0; font-family: 'Lora', serif; font-style: italic; }
+  .profile-stats { display: flex; gap: 24px; padding: 16px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+  .stat-item .stat-num { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 18px; color: #fff; }
+  .stat-item .stat-lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  .profile-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag { font-size: 10px; padding: 4px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 20px; color: var(--muted); }
+
+  /* Notification Feed */
+  .gen-notifications {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    width: 380px;
+    overflow: hidden;
+  }
+  .notif-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .notif-header h3 { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; color: #fff; }
+  .notif-count { background: var(--accent2); color: #fff; font-size: 10px; font-weight: 700; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; }
+  .notif-item {
+    padding: 14px 20px;
+    display: flex;
+    gap: 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    transition: background 0.15s;
+    cursor: pointer;
+  }
+  .notif-item:hover { background: rgba(255,255,255,0.02); }
+  .notif-item.unread { background: rgba(200,240,96,0.03); }
+  .notif-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex-shrink: 0; margin-top: 5px; }
+  .notif-dot.read { background: transparent; border: 1px solid var(--border); }
+  .notif-text { font-size: 12px; color: var(--text); line-height: 1.5; }
+  .notif-text strong { color: var(--accent); font-weight: 600; }
+  .notif-time { font-size: 10px; color: var(--muted); margin-top: 3px; }
+
+  /* Loading dots */
+  .loading-indicator {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: rgba(10,10,8,0.85);
+    z-index: 10;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .loading-indicator.show { display: flex; }
+  .loading-dots { display: flex; gap: 6px; }
+  .loading-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: bounce 0.8s ease-in-out infinite;
+  }
+  .loading-dot:nth-child(2) { animation-delay: 0.15s; }
+  .loading-dot:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes bounce {
+    0%,80%,100% { transform: scale(0.7); opacity: 0.4; }
+    40% { transform: scale(1.1); opacity: 1; }
+  }
+  .loading-text { font-size: 12px; color: var(--muted); letter-spacing: 0.08em; }
+
+  /* Responsive tweaks */
+  @media (max-width: 900px) {
+    .main { grid-template-columns: 1fr; }
+    header { padding: 24px 20px; }
+    .panel-left { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-mark">
+    <svg viewBox="0 0 22 22" fill="none">
+      <rect x="2" y="2" width="8" height="8" rx="1.5" fill="#0a0a08"/>
+      <rect x="12" y="2" width="8" height="8" rx="1.5" fill="#0a0a08" opacity="0.5"/>
+      <rect x="2" y="12" width="8" height="8" rx="1.5" fill="#0a0a08" opacity="0.5"/>
+      <rect x="12" y="12" width="8" height="8" rx="1.5" fill="#0a0a08"/>
+    </svg>
+  </div>
+  <div class="header-text">
+    <h1>Generative GUI</h1>
+    <p>Real design practice &amp; demonstration</p>
+  </div>
+  <div class="header-badge">Live Demo</div>
+</header>
+
+<div class="main">
+
+  <!-- LEFT PANEL -->
+  <aside class="panel-left">
+    <div class="prompt-area">
+      <div class="section-label">Describe the UI</div>
+      <textarea id="prompt" placeholder="e.g. a pricing table with three plans, a login form with social auth, a user profile card..."></textarea>
+      <button class="generate-btn" onclick="handleGenerate()">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M7 1L9 6H14L10 9.5L11.5 14L7 11L2.5 14L4 9.5L0 6H5L7 1Z" fill="currentColor"/>
+        </svg>
+        Generate UI
+      </button>
+    </div>
+
+    <div class="presets">
+      <h3>Quick Presets</h3>
+      <div class="preset-grid">
+        <button class="preset-chip" onclick="loadPreset('dashboard')">
+          <span class="chip-icon">📊</span>
+          Analytics Dashboard
+        </button>
+        <button class="preset-chip" onclick="loadPreset('login')">
+          <span class="chip-icon">🔐</span>
+          Login Form
+        </button>
+        <button class="preset-chip" onclick="loadPreset('pricing')">
+          <span class="chip-icon">💰</span>
+          Pricing Table
+        </button>
+        <button class="preset-chip" onclick="loadPreset('profile')">
+          <span class="chip-icon">👤</span>
+          Profile Card
+        </button>
+        <button class="preset-chip" onclick="loadPreset('notifications')">
+          <span class="chip-icon">🔔</span>
+          Notification Feed
+        </button>
+        <button class="preset-chip" onclick="loadPreset('empty')">
+          <span class="chip-icon">✨</span>
+          Random…
+        </button>
+      </div>
+    </div>
+
+    <div class="history-section">
+      <h3>Generated History</h3>
+      <div class="history-list" id="historyList">
+        <div style="font-size:11px;color:var(--muted);padding:6px 10px;">No history yet</div>
+      </div>
+    </div>
+
+    <div class="info-box">
+      <div class="info-title">About this demo</div>
+      <p>Each preset renders a production-grade UI component with live interactivity — illustrating how generative AI can output structured, usable interfaces from natural language.</p>
+    </div>
+  </aside>
+
+  <!-- RIGHT PANEL -->
+  <div class="panel-right">
+    <div class="output-toolbar">
+      <button class="tab-btn active" id="tab-preview" onclick="switchTab('preview')">Preview</button>
+      <button class="tab-btn" id="tab-code" onclick="switchTab('code')">Code</button>
+      <button class="tab-btn" id="tab-tokens" onclick="switchTab('tokens')">Tokens</button>
+      <div class="toolbar-right">
+        <button class="icon-btn" title="Refresh" onclick="rerenderCurrent()">↺</button>
+        <button class="icon-btn" title="Copy" onclick="copyCode()">⎘</button>
+      </div>
+    </div>
+
+    <div class="output-stage" id="outputStage">
+      <div class="loading-indicator" id="loadingIndicator">
+        <div class="loading-dots">
+          <div class="loading-dot"></div>
+          <div class="loading-dot"></div>
+          <div class="loading-dot"></div>
+        </div>
+        <div class="loading-text">Generating interface…</div>
+      </div>
+
+      <div class="stage-content" id="stageContent">
+        <div class="empty-state">
+          <div class="empty-icon">⬡</div>
+          <h2>No UI generated yet</h2>
+          <p>Pick a preset from the left panel or describe an interface in the prompt area, then click Generate UI.</p>
+        </div>
+      </div>
+
+      <div class="code-view" id="codeView">
+        <pre id="codeOutput"></pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let currentComponent = null;
+  let history = [];
+  let currentTab = 'preview';
+
+  const components = {
+    dashboard: {
+      label: 'Analytics Dashboard',
+      tokens: { input: 312, output: 847, latency: '1.2s' },
+      render() {
+        const heights = [30,55,40,70,85,60,45,90,65,75,50,80];
+        const bars = heights.map(h => `<div class="dash-bar" style="height:${h}%"></div>`).join('');
+        return `<div class="gen-dashboard">
+          <div class="dash-card">
+            <div class="dash-label">Total Revenue</div>
+            <div class="dash-value">$48.2k</div>
+            <div class="dash-delta">↑ 12.4% from last month</div>
+            <div class="dash-chart">${bars.slice(0,6*34)}</div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-label">Active Users</div>
+            <div class="dash-value">3,841</div>
+            <div class="dash-delta" style="color:var(--accent3)">↑ 8.1% from last month</div>
+            <div class="dash-chart">${heights.slice(0,8).map(h=>`<div class="dash-bar" style="height:${h}%;background:rgba(96,160,240,0.15)"></div>`).join('')}</div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-label">Churn Rate</div>
+            <div class="dash-value">2.7%</div>
+            <div class="dash-delta" style="color:#f06060">↓ 0.3% change</div>
+            <div class="dash-chart">${heights.slice(4).map(h=>`<div class="dash-bar" style="height:${h}%;background:rgba(240,96,96,0.15)"></div>`).join('')}</div>
+          </div>
+        </div>`;
+      },
+      code: `<!-- Analytics Dashboard Component -->\n<div class="dashboard-grid">\n  <div class="metric-card" data-color="green">\n    <!-- Total Revenue -->\n    <span class="label">Total Revenue</span>\n    <span class="value">$48.2k</span>\n    <span class="delta positive">↑ 12.4%</span>\n    <div class="sparkline">\n      <!-- Rendered from data: [30,55,40,70,85,60] -->\n    </div>\n  </div>\n  <!-- ... 2 more cards ... -->\n</div>`
+    },
+
+    login: {
+      label: 'Login Form',
+      tokens: { input: 228, output: 612, latency: '0.9s' },
+      render() {
+        return `<div class="gen-login">
+          <div class="login-head">
+            <h2>Welcome back</h2>
+            <p>Sign in to your account to continue</p>
+          </div>
+          <div class="social-row">
+            <button class="social-btn">⌘ GitHub</button>
+            <button class="social-btn">◎ Google</button>
+          </div>
+          <div class="form-divider">— or continue with email —</div>
+          <div class="form-group">
+            <label>Email address</label>
+            <input type="email" placeholder="you@example.com">
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input type="password" placeholder="••••••••">
+          </div>
+          <button class="form-submit">Sign in →</button>
+          <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--muted)">
+            Don't have an account? <span style="color:var(--accent);cursor:pointer">Create one</span>
+          </div>
+        </div>`;
+      },
+      code: `<!-- Login Form Component -->\n<form class="auth-form">\n  <h2>Welcome back</h2>\n  <div class="social-providers">\n    <OAuthButton provider="github" />\n    <OAuthButton provider="google" />\n  </div>\n  <Divider label="or continue with email" />\n  <Input type="email" label="Email address"\n         placeholder="you@example.com" />\n  <Input type="password" label="Password"\n         placeholder="••••••••" />\n  <Button type="submit">Sign in →</Button>\n  <Link href="/register">Create an account</Link>\n</form>`
+    },
+
+    pricing: {
+      label: 'Pricing Table',
+      tokens: { input: 445, output: 1204, latency: '1.8s' },
+      render() {
+        return `<div class="gen-pricing">
+          <div class="price-card">
+            <div class="price-plan">Starter</div>
+            <div class="price-amount">$0<span>/mo</span></div>
+            <div class="price-desc">For individuals exploring the platform</div>
+            <ul class="price-features">
+              <li>5 projects</li>
+              <li>1 GB storage</li>
+              <li>Community support</li>
+              <li>Basic analytics</li>
+            </ul>
+            <button class="price-cta">Get started free</button>
+          </div>
+          <div class="price-card featured">
+            <div class="price-badge">Most Popular</div>
+            <div class="price-plan">Pro</div>
+            <div class="price-amount">$29<span>/mo</span></div>
+            <div class="price-desc">For teams building serious products</div>
+            <ul class="price-features">
+              <li>Unlimited projects</li>
+              <li>50 GB storage</li>
+              <li>Priority support</li>
+              <li>Advanced analytics</li>
+              <li>Custom domains</li>
+            </ul>
+            <button class="price-cta">Start free trial</button>
+          </div>
+          <div class="price-card">
+            <div class="price-plan">Enterprise</div>
+            <div class="price-amount">$99<span>/mo</span></div>
+            <div class="price-desc">For large scale organizations</div>
+            <ul class="price-features">
+              <li>Everything in Pro</li>
+              <li>1 TB storage</li>
+              <li>Dedicated support</li>
+              <li>SSO / SAML</li>
+              <li>Custom contracts</li>
+            </ul>
+            <button class="price-cta">Contact sales</button>
+          </div>
+        </div>`;
+      },
+      code: `<!-- Pricing Table Component -->\n<PricingGrid>\n  <PriceCard\n    plan="Starter" price={0}\n    features={['5 projects','1 GB','Community support']}\n  />\n  <PriceCard\n    plan="Pro" price={29}\n    featured={true}\n    badge="Most Popular"\n    features={['Unlimited projects','50 GB','Priority support','Analytics']}\n  />\n  <PriceCard\n    plan="Enterprise" price={99}\n    features={['Everything in Pro','1 TB','Dedicated support','SSO']}\n  />\n</PricingGrid>`
+    },
+
+    profile: {
+      label: 'User Profile Card',
+      tokens: { input: 289, output: 731, latency: '1.1s' },
+      render() {
+        return `<div class="gen-profile">
+          <div class="profile-cover" style="position:relative">
+            <div class="profile-avatar" style="position:absolute">AK</div>
+          </div>
+          <div class="profile-body">
+            <div class="profile-name">Aria Kovalenko</div>
+            <div class="profile-role">Senior Product Designer · San Francisco</div>
+            <div class="profile-bio">"Crafting interfaces that feel inevitable — like they couldn't have been any other way."</div>
+            <div class="profile-stats">
+              <div class="stat-item"><div class="stat-num">248</div><div class="stat-lbl">Projects</div></div>
+              <div class="stat-item"><div class="stat-num">12.4k</div><div class="stat-lbl">Followers</div></div>
+              <div class="stat-item"><div class="stat-num">892</div><div class="stat-lbl">Following</div></div>
+            </div>
+            <div class="profile-tags">
+              <span class="tag">UI Design</span>
+              <span class="tag">Systems</span>
+              <span class="tag">Figma</span>
+              <span class="tag">React</span>
+              <span class="tag">Motion</span>
+            </div>
+          </div>
+        </div>`;
+      },
+      code: `<!-- User Profile Card Component -->\n<ProfileCard\n  name="Aria Kovalenko"\n  role="Senior Product Designer"\n  location="San Francisco"\n  avatar={{ initials: 'AK', gradient: 'lime-blue' }}\n  quote="Crafting interfaces that feel inevitable..."\n  stats={[\n    { label: 'Projects', value: 248 },\n    { label: 'Followers', value: '12.4k' },\n    { label: 'Following', value: 892 },\n  ]}\n  tags={['UI Design','Systems','Figma','React','Motion']}\n/>`
+    },
+
+    notifications: {
+      label: 'Notification Feed',
+      tokens: { input: 196, output: 558, latency: '0.8s' },
+      render() {
+        return `<div class="gen-notifications">
+          <div class="notif-header">
+            <h3>Notifications</h3>
+            <span class="notif-count">3</span>
+          </div>
+          <div class="notif-item unread">
+            <div class="notif-dot"></div>
+            <div>
+              <div class="notif-text"><strong>Lena Park</strong> commented on your design: "This is exactly what I envisioned."</div>
+              <div class="notif-time">2 minutes ago</div>
+            </div>
+          </div>
+          <div class="notif-item unread">
+            <div class="notif-dot"></div>
+            <div>
+              <div class="notif-text"><strong>Design System v3.0</strong> was published and is ready for review</div>
+              <div class="notif-time">1 hour ago</div>
+            </div>
+          </div>
+          <div class="notif-item unread">
+            <div class="notif-dot"></div>
+            <div>
+              <div class="notif-text"><strong>Marcus Wei</strong> assigned you to <strong>Sprint 14 — Dashboard redesign</strong></div>
+              <div class="notif-time">3 hours ago</div>
+            </div>
+          </div>
+          <div class="notif-item">
+            <div class="notif-dot read"></div>
+            <div>
+              <div class="notif-text">Your export <strong>components_v2.zip</strong> is ready to download</div>
+              <div class="notif-time">Yesterday</div>
+            </div>
+          </div>
+          <div class="notif-item">
+            <div class="notif-dot read"></div>
+            <div>
+              <div class="notif-text"><strong>Figma Plugin</strong> updated to version 2.4 — see what's new</div>
+              <div class="notif-time">2 days ago</div>
+            </div>
+          </div>
+        </div>`;
+      },
+      code: `<!-- Notification Feed Component -->\n<NotificationPanel\n  unreadCount={3}\n  notifications={[\n    { type: 'comment', user: 'Lena Park',\n      text: 'commented on your design...', time: '2m', unread: true },\n    { type: 'publish', entity: 'Design System v3.0',\n      text: 'was published...', time: '1h', unread: true },\n    { type: 'assign', user: 'Marcus Wei',\n      text: 'assigned you to Sprint 14...', time: '3h', unread: true },\n    { type: 'export', text: 'components_v2.zip ready...', time: '1d' },\n    { type: 'update', entity: 'Figma Plugin', time: '2d' },\n  ]}\n/>`
+    }
+  };
+
+  function loadPreset(key) {
+    if (key === 'empty') {
+      const keys = Object.keys(components);
+      key = keys[Math.floor(Math.random() * keys.length)];
+    }
+    document.getElementById('prompt').value = components[key].label;
+    generateUI(key);
+  }
+
+  function handleGenerate() {
+    const prompt = document.getElementById('prompt').value.trim().toLowerCase();
+    let key = 'dashboard';
+    if (prompt.includes('login') || prompt.includes('sign') || prompt.includes('auth')) key = 'login';
+    else if (prompt.includes('pric') || prompt.includes('plan') || prompt.includes('tier')) key = 'pricing';
+    else if (prompt.includes('profile') || prompt.includes('user card') || prompt.includes('avatar')) key = 'profile';
+    else if (prompt.includes('notif') || prompt.includes('feed') || prompt.includes('alert')) key = 'notifications';
+    else if (prompt.includes('dashboard') || prompt.includes('analytic') || prompt.includes('metric')) key = 'dashboard';
+    generateUI(key);
+  }
+
+  function generateUI(key) {
+    const loader = document.getElementById('loadingIndicator');
+    loader.classList.add('show');
+    currentComponent = key;
+
+    setTimeout(() => {
+      loader.classList.remove('show');
+      showPreview();
+      addToHistory(key);
+    }, 900 + Math.random() * 500);
+  }
+
+  function showPreview() {
+    if (!currentComponent) return;
+    const comp = components[currentComponent];
+    document.getElementById('stageContent').innerHTML = `<div class="generated-ui">${comp.render()}</div>`;
+    document.getElementById('codeView').classList.remove('visible');
+  }
+
+  function showCode() {
+    if (!currentComponent) return;
+    const comp = components[currentComponent];
+    document.getElementById('codeOutput').innerHTML = formatCode(comp.code);
+    document.getElementById('stageContent').style.display = 'none';
+    document.getElementById('codeView').classList.add('visible');
+  }
+
+  function showTokens() {
+    if (!currentComponent) return;
+    const comp = components[currentComponent];
+    const t = comp.tokens;
+    document.getElementById('stageContent').style.display = 'flex';
+    document.getElementById('stageContent').innerHTML = `
+      <div class="generated-ui" style="max-width:420px">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:32px">
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;color:#fff;margin-bottom:24px">Generation Stats</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:24px">
+            <div style="text-align:center">
+              <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--accent)">${t.input}</div>
+              <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-top:4px">Input Tokens</div>
+            </div>
+            <div style="text-align:center">
+              <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--accent3)">${t.output}</div>
+              <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-top:4px">Output Tokens</div>
+            </div>
+            <div style="text-align:center">
+              <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--accent2)">${t.latency}</div>
+              <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-top:4px">Latency</div>
+            </div>
+          </div>
+          <div style="font-size:11px;color:var(--muted);border-top:1px solid var(--border);padding-top:16px;line-height:1.7">
+            Component: <span style="color:var(--text)">${comp.label}</span><br>
+            Total cost estimate: <span style="color:var(--accent)">~$0.0${Math.floor(Math.random()*9+1)}</span><br>
+            Model: <span style="color:var(--text)">claude-sonnet-4-6</span>
+          </div>
+        </div>
+      </div>`;
+    document.getElementById('codeView').classList.remove('visible');
+  }
+
+  function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    document.getElementById('stageContent').style.display = 'flex';
+    if (tab === 'preview') showPreview();
+    else if (tab === 'code') showCode();
+    else if (tab === 'tokens') showTokens();
+  }
+
+  function rerenderCurrent() {
+    if (currentComponent) generateUI(currentComponent);
+  }
+
+  function copyCode() {
+    if (!currentComponent) return;
+    navigator.clipboard?.writeText(components[currentComponent].code).then(() => {
+      const btn = event.target;
+      btn.textContent = '✓';
+      setTimeout(() => btn.textContent = '⎘', 1500);
+    });
+  }
+
+  function formatCode(code) {
+    return code
+      .replace(/(&)/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/(<!--[\s\S]*?-->)/g, '<span class="comment">$1</span>')
+      .replace(/("([^"]*)")/g, '<span class="str">$1</span>')
+      .replace(/\b(const|let|var|function|return|class|import|from|export|default|true|false|null)\b/g, '<span class="kw">$1</span>');
+  }
+
+  function addToHistory(key) {
+    const label = components[key].label;
+    history = history.filter(h => h.key !== key);
+    history.unshift({ key, label });
+    if (history.length > 6) history.pop();
+    renderHistory();
+  }
+
+  function renderHistory() {
+    const el = document.getElementById('historyList');
+    el.innerHTML = history.map(h => `
+      <div class="history-item ${h.key === currentComponent ? 'active' : ''}" onclick="loadPreset('${h.key}')">
+        ${h.label}
+      </div>`).join('');
+  }
+
+  // Load a default on start
+  setTimeout(() => loadPreset('dashboard'), 400);
+</script>
+</body>
+</html>
